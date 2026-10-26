@@ -1,0 +1,15 @@
+# Dependencies — restored by `npm install`
+node_modules/
+
+# Build output — produced by `npm run build`
+dist/
+
+# Secrets: database passwords, token signing keys. Never commit these;
+# .env.example lists what's needed, without the values.
+.env
+.env.*
+!.env.example
+
+# Local tooling
+.claude/
+*.log
