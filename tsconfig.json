@@ -7,9 +7,7 @@
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "rootDir": "src",
-    "outDir": "dist",
-    "sourceMap": true
+    "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }
