@@ -13,10 +13,14 @@
     "start": "node dist/server.js",
     "typecheck": "tsc",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down"
   },
   "dependencies": {
-    "fastify": "^5.12.7"
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.12.7",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

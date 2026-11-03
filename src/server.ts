@@ -1,13 +1,21 @@
+import { existsSync } from 'node:fs';
+
 import { buildApp } from './app.js';
+import { loadConfig } from './config.js';
+import { createDatabase } from './db/client.js';
 
-// Where to listen, overridable from outside: the VPS sets its own values.
-const port = Number(process.env.PORT ?? 3000);
-// 127.0.0.1 = this computer only (the Android emulator reaches it as
-// 10.0.2.2). On the VPS, inside Docker, it becomes 0.0.0.0 — "accept from
-// outside" — set through HOST.
-const host = process.env.HOST ?? '127.0.0.1';
+// Locally, settings live in .env; on the VPS, Docker provides them directly
+// and there is no .env file.
+if (existsSync('.env')) process.loadEnvFile('.env');
 
-const app = buildApp({ logger: true });
+const config = loadConfig();
+const database = createDatabase(config.databaseUrl);
+const app = buildApp({ logger: true, pingDatabase: database.ping });
+
+// Closing the server closes the database connections with it.
+app.addHook('onClose', async () => {
+  await database.close();
+});
 
 // Ctrl+C here, or the VPS stopping the service: let requests in flight
 // finish, then exit cleanly instead of cutting them off.
@@ -19,7 +27,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
 }
 
 try {
-  await app.listen({ port, host });
+  await app.listen({ port: config.port, host: config.host });
 } catch (error) {
   app.log.error(error);
   process.exit(1);
