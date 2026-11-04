@@ -1,12 +1,24 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import fastifyJwt from '@fastify/jwt';
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import Fastify, { type FastifyError } from 'fastify';
+
+import { ACCESS_TOKEN_TTL } from './auth/tokens.js';
+import type { Db } from './db/client.js';
+import { authRoutes } from './routes/auth.js';
+import { meRoutes } from './routes/me.js';
 
 export interface AppOptions {
   logger?: boolean;
+  /** Signs access tokens (from JWT_SECRET). */
+  jwtSecret: string;
   /**
-   * Checks the database is reachable. Passed in rather than created here, so
-   * tests can hand in a fake one — up or down — without a real database.
+   * The database, passed in rather than created here — tests hand in a
+   * throwaway database, or a fake `ping` for what /health answers.
    */
-  pingDatabase: () => Promise<void>;
+  database: {
+    db: Db;
+    ping: () => Promise<void>;
+  };
 }
 
 /**
@@ -14,8 +26,26 @@ export interface AppOptions {
  * from starting it (see server.ts) so tests can call the routes directly,
  * without opening a real port.
  */
-export function buildApp(options: AppOptions): FastifyInstance {
-  const app = Fastify({ logger: options.logger ?? false });
+export function buildApp(options: AppOptions) {
+  const app = Fastify({ logger: options.logger ?? false }).withTypeProvider<TypeBoxTypeProvider>();
+
+  app.register(fastifyJwt, {
+    secret: options.jwtSecret,
+    sign: { expiresIn: ACCESS_TOKEN_TTL },
+  });
+
+  // Requests that don't fit a route's schema (not an email, password too
+  // short, …) get one consistent shape the app can rely on: an error code to
+  // show a translated message for, plus a detail for developers.
+  app.setErrorHandler((error: FastifyError, request, reply) => {
+    if (error.validation) {
+      return reply.code(400).send({ error: 'invalid_input', message: error.message });
+    }
+    request.log.error(error);
+    return reply
+      .code(error.statusCode ?? 500)
+      .send({ error: 'server_error', message: 'Something went wrong' });
+  });
 
   // Liveness check — the server is up and can reach its database. Handy to
   // check in a browser now; later, uptime monitoring on the VPS will ping it.
@@ -23,7 +53,7 @@ export function buildApp(options: AppOptions): FastifyInstance {
   // notices.
   app.get('/health', async (request, reply) => {
     try {
-      await options.pingDatabase();
+      await options.database.ping();
       return { status: 'ok', database: 'ok' };
     } catch (error) {
       request.log.error(error, 'database is unreachable');
@@ -31,5 +61,10 @@ export function buildApp(options: AppOptions): FastifyInstance {
     }
   });
 
+  app.register(authRoutes(options.database.db));
+  app.register(meRoutes(options.database.db));
+
   return app;
 }
+
+export type App = ReturnType<typeof buildApp>;

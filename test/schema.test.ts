@@ -1,37 +1,23 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
 
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import type { Db } from '../src/db/client.js';
 import { items, refreshTokens, users } from '../src/db/schema.js';
+import { createTestDatabase, databaseUrl } from './helpers/testDatabase.js';
 
 // Applies the migrations to a brand-new throwaway database — never the
 // working one — then checks the rules the database itself enforces.
-if (existsSync('.env')) process.loadEnvFile('.env');
-const url = process.env.DATABASE_URL;
-
-describe.skipIf(!url)('database schema', () => {
-  const name = `backpack_test_${Date.now()}`;
-  const admin = postgres(url!, { max: 1 });
-  const testUrl = new URL(url!);
-  testUrl.pathname = `/${name}`;
-  const client = postgres(testUrl.toString(), { max: 1, onnotice: () => {} });
-  const db = drizzle(client);
+describe.skipIf(!databaseUrl)('database schema', () => {
+  let testDb: Awaited<ReturnType<typeof createTestDatabase>>;
+  let db: Db;
 
   beforeAll(async () => {
-    await admin.unsafe(`CREATE DATABASE ${name}`);
-    await migrate(db, { migrationsFolder: 'drizzle' });
+    testDb = await createTestDatabase();
+    db = testDb.db;
   });
-
-  afterAll(async () => {
-    await client.end();
-    await admin.unsafe(`DROP DATABASE ${name}`);
-    await admin.end();
-  });
+  afterAll(async () => testDb.drop());
 
   const addUser = async (email: string) =>
     (await db.insert(users).values({ email }).returning())[0]!;

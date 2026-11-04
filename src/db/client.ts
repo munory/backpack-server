@@ -30,3 +30,5 @@ export function createDatabase(url: string) {
 }
 
 export type Database = ReturnType<typeof createDatabase>;
+/** The Drizzle instance queries are written against. */
+export type Db = Database['db'];

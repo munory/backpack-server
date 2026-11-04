@@ -8,6 +8,7 @@ export interface Config {
   port: number;
   host: string;
   databaseUrl: string;
+  jwtSecret: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -15,10 +16,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!databaseUrl) {
     throw new Error('DATABASE_URL is not set — copy .env.example to .env and fill it in');
   }
+  const jwtSecret = env.JWT_SECRET;
+  if (!jwtSecret || jwtSecret.length < 32) {
+    throw new Error('JWT_SECRET must be set to at least 32 random characters — see .env.example');
+  }
   return {
     port: Number(env.PORT ?? 3000),
     // This computer only by default; the VPS sets 0.0.0.0 inside Docker.
     host: env.HOST ?? '127.0.0.1',
     databaseUrl,
+    jwtSecret,
   };
 }

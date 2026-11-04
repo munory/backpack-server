@@ -10,7 +10,7 @@ if (existsSync('.env')) process.loadEnvFile('.env');
 
 const config = loadConfig();
 const database = createDatabase(config.databaseUrl);
-const app = buildApp({ logger: true, pingDatabase: database.ping });
+const app = buildApp({ logger: true, jwtSecret: config.jwtSecret, database });
 
 // Closing the server closes the database connections with it.
 app.addHook('onClose', async () => {
