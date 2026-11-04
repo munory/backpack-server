@@ -2,7 +2,7 @@ import { type FastifyPluginAsyncTypebox, Type } from '@fastify/type-provider-typ
 import { eq } from 'drizzle-orm';
 
 import { hashPassword, verifyAgainstNothing, verifyPassword } from '../auth/passwords.js';
-import { issueTokens } from '../auth/tokens.js';
+import { issueTokens, revokeRefreshToken, rotateRefreshToken } from '../auth/tokens.js';
 import { normalizeEmail, toPublicUser } from '../auth/users.js';
 import type { Db } from '../db/client.js';
 import { users } from '../db/schema.js';
@@ -28,7 +28,12 @@ const LoginBody = Type.Object(
   { additionalProperties: false },
 );
 
-/** POST /auth/register and POST /auth/login. */
+const RefreshBody = Type.Object(
+  { refreshToken: Type.String({ minLength: 1, maxLength: 200 }) },
+  { additionalProperties: false },
+);
+
+/** POST /auth/register, /auth/login, /auth/refresh and /auth/logout. */
 export function authRoutes(db: Db): FastifyPluginAsyncTypebox {
   return async (app) => {
     app.post('/auth/register', { schema: { body: RegisterBody } }, async (request, reply) => {
@@ -70,6 +75,25 @@ export function authRoutes(db: Db): FastifyPluginAsyncTypebox {
 
       const tokens = await issueTokens(app, db, user.id);
       return { user: toPublicUser(user), ...tokens };
+    });
+
+    // The app calls this when its 15-minute access token runs out: the old
+    // refresh token goes in, a new pair comes out, and the old one is spent.
+    app.post('/auth/refresh', { schema: { body: RefreshBody } }, async (request, reply) => {
+      const rotated = await rotateRefreshToken(app, db, request.body.refreshToken);
+      if (!rotated) {
+        return reply
+          .code(401)
+          .send({ error: 'invalid_refresh_token', message: 'Sign in again' });
+      }
+      return rotated.tokens;
+    });
+
+    // 204 "No Content": done, nothing to send back — whether or not the
+    // token was still valid, so signing out twice is fine.
+    app.post('/auth/logout', { schema: { body: RefreshBody } }, async (request, reply) => {
+      await revokeRefreshToken(db, request.body.refreshToken);
+      return reply.code(204).send();
     });
   };
 }

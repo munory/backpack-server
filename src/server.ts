@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 
 import { buildApp } from './app.js';
+import { createGoogleVerifier } from './auth/google.js';
 import { loadConfig } from './config.js';
 import { createDatabase } from './db/client.js';
 
@@ -10,7 +11,12 @@ if (existsSync('.env')) process.loadEnvFile('.env');
 
 const config = loadConfig();
 const database = createDatabase(config.databaseUrl);
-const app = buildApp({ logger: true, jwtSecret: config.jwtSecret, database });
+const app = buildApp({
+  logger: true,
+  jwtSecret: config.jwtSecret,
+  database,
+  verifyGoogleToken: config.googleClientId ? createGoogleVerifier(config.googleClientId) : undefined,
+});
 
 // Closing the server closes the database connections with it.
 app.addHook('onClose', async () => {

@@ -2,15 +2,22 @@ import fastifyJwt from '@fastify/jwt';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import Fastify, { type FastifyError } from 'fastify';
 
+import type { VerifyGoogleToken } from './auth/google.js';
 import { ACCESS_TOKEN_TTL } from './auth/tokens.js';
 import type { Db } from './db/client.js';
 import { authRoutes } from './routes/auth.js';
+import { googleRoutes } from './routes/google.js';
 import { meRoutes } from './routes/me.js';
 
 export interface AppOptions {
   logger?: boolean;
   /** Signs access tokens (from JWT_SECRET). */
   jwtSecret: string;
+  /**
+   * Checks Google ID tokens (stage 7). Passed in so tests can fake Google;
+   * absent when GOOGLE_CLIENT_ID isn't set — Google sign-in then answers 503.
+   */
+  verifyGoogleToken?: VerifyGoogleToken;
   /**
    * The database, passed in rather than created here — tests hand in a
    * throwaway database, or a fake `ping` for what /health answers.
@@ -62,6 +69,7 @@ export function buildApp(options: AppOptions) {
   });
 
   app.register(authRoutes(options.database.db));
+  app.register(googleRoutes(options.database.db, options.verifyGoogleToken));
   app.register(meRoutes(options.database.db));
 
   return app;

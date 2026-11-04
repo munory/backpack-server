@@ -9,6 +9,8 @@ export interface Config {
   host: string;
   databaseUrl: string;
   jwtSecret: string;
+  /** The web client id from Google Cloud; without it Google sign-in is off. */
+  googleClientId: string | undefined;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -26,5 +28,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     host: env.HOST ?? '127.0.0.1',
     databaseUrl,
     jwtSecret,
+    googleClientId: env.GOOGLE_CLIENT_ID || undefined,
   };
 }

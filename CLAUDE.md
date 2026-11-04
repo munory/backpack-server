@@ -29,8 +29,15 @@ full history.
 ## What the app needs from the server
 
 - **Accounts are optional** — the app works fully without signing in.
-- Sign in with **Google** or **email + password** (with password reset by email);
-  sign out; **delete account** (Google Play requirement).
+- Sign in with **email + password** (with password reset by email); sign out;
+  **delete account** (Google Play requirement). No nickname — only an optional
+  display `name`.
+- **Google sign-in is written but switched off** (decided 2026-11-04): `/auth/google`
+  answers 503 until `GOOGLE_CLIENT_ID` is set. She chose not to register the app
+  with Google for v1 — email + password is enough while accounts are optional.
+  Turning it on later = create a Web + Android OAuth client in Google Cloud and set
+  the Web client id. Yandex ID / VK ID were floated as likely more useful for
+  Russian users, also for later.
 - **Sync everything** except per-device settings (theme, language, weight units):
   categories (tree via parent), items, trips, trip items (per-trip quantity, inBag).
 - **Offline-first:** the phone's SQLite (Drift) is the source of truth; the server
