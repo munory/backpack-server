@@ -54,7 +54,10 @@ export const refreshTokens = pgTable(
   (t) => [index('refresh_tokens_user_idx').on(t.userId)],
 );
 
-/** One-time "set a new password" links, short-lived; hashed like tokens. */
+/**
+ * "Forgot password" codes — 6 digits sent by email, valid 15 minutes, 5 tries.
+ * A new request retires the previous code (marks it used).
+ */
 export const passwordResets = pgTable(
   'password_resets',
   {
@@ -62,7 +65,11 @@ export const passwordResets = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    tokenHash: text('token_hash').notNull().unique(),
+    /** HMAC of the code with the server's secret — never the code itself. Not
+     * unique: two people can be sent the same 6 digits. */
+    tokenHash: text('token_hash').notNull(),
+    /** Wrong codes typed so far; at 5 the code is retired. */
+    attempts: integer('attempts').notNull().default(0),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     usedAt: timestamp('used_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

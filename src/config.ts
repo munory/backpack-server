@@ -11,6 +11,9 @@ export interface Config {
   jwtSecret: string;
   /** The web client id from Google Cloud; without it Google sign-in is off. */
   googleClientId: string | undefined;
+  /** Mail server for "forgot password" codes; without it reset answers 503. */
+  smtpUrl: string | undefined;
+  mailFrom: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -29,5 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     databaseUrl,
     jwtSecret,
     googleClientId: env.GOOGLE_CLIENT_ID || undefined,
+    smtpUrl: env.SMTP_URL || undefined,
+    mailFrom: env.MAIL_FROM || 'Backpack <no-reply@backpack.local>',
   };
 }

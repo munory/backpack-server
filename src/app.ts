@@ -5,9 +5,11 @@ import Fastify, { type FastifyError } from 'fastify';
 import type { VerifyGoogleToken } from './auth/google.js';
 import { ACCESS_TOKEN_TTL } from './auth/tokens.js';
 import type { Db } from './db/client.js';
+import type { SendMail } from './mail/mailer.js';
 import { authRoutes } from './routes/auth.js';
 import { googleRoutes } from './routes/google.js';
 import { meRoutes } from './routes/me.js';
+import { passwordResetRoutes } from './routes/passwordReset.js';
 
 export interface AppOptions {
   logger?: boolean;
@@ -18,6 +20,11 @@ export interface AppOptions {
    * absent when GOOGLE_CLIENT_ID isn't set — Google sign-in then answers 503.
    */
   verifyGoogleToken?: VerifyGoogleToken;
+  /**
+   * Sends email (password reset codes). Passed in so tests can catch mail;
+   * absent when SMTP_URL isn't set — reset then answers 503.
+   */
+  sendMail?: SendMail;
   /**
    * The database, passed in rather than created here — tests hand in a
    * throwaway database, or a fake `ping` for what /health answers.
@@ -70,6 +77,13 @@ export function buildApp(options: AppOptions) {
 
   app.register(authRoutes(options.database.db));
   app.register(googleRoutes(options.database.db, options.verifyGoogleToken));
+  app.register(
+    passwordResetRoutes({
+      db: options.database.db,
+      sendMail: options.sendMail,
+      secret: options.jwtSecret,
+    }),
+  );
   app.register(meRoutes(options.database.db));
 
   return app;

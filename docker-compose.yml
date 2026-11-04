@@ -1,5 +1,6 @@
-# Local development database. `npm run db:up` starts it, `npm run db:down`
-# stops it; the data survives both (it lives in the `pgdata` volume).
+# Local development services: the database and a fake mail inbox.
+# `npm run db:up` starts them, `npm run db:down` stops them; the database's
+# data survives both (it lives in the `pgdata` volume).
 # Credentials come from .env — see .env.example.
 services:
   postgres:
@@ -19,6 +20,16 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Catches every email the server sends — nothing ever reaches a real
+  # inbox. Read them at http://localhost:8025. In production the server
+  # talks to a real mail service instead (SMTP_URL in .env).
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025" # SMTP — where the server sends mail
+      - "127.0.0.1:8025:8025" # web inbox
 
 volumes:
   pgdata:

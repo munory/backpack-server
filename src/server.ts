@@ -4,6 +4,7 @@ import { buildApp } from './app.js';
 import { createGoogleVerifier } from './auth/google.js';
 import { loadConfig } from './config.js';
 import { createDatabase } from './db/client.js';
+import { createSmtpMailer } from './mail/mailer.js';
 
 // Locally, settings live in .env; on the VPS, Docker provides them directly
 // and there is no .env file.
@@ -16,6 +17,7 @@ const app = buildApp({
   jwtSecret: config.jwtSecret,
   database,
   verifyGoogleToken: config.googleClientId ? createGoogleVerifier(config.googleClientId) : undefined,
+  sendMail: config.smtpUrl ? createSmtpMailer(config.smtpUrl, config.mailFrom) : undefined,
 });
 
 // Closing the server closes the database connections with it.
