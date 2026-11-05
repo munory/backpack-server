@@ -13,7 +13,7 @@ describe.skipIf(!databaseUrl)('renewing and signing out', () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ jwtSecret: 'test-secret-that-is-at-least-32-chars', database: testDb });
+    app = buildApp({ rateLimit: false, jwtSecret: 'test-secret-that-is-at-least-32-chars', database: testDb });
     await app.ready();
   });
   afterAll(async () => {

@@ -17,6 +17,7 @@ describe.skipIf(!databaseUrl)('forgot password', () => {
   beforeAll(async () => {
     testDb = await createTestDatabase();
     app = buildApp({
+      rateLimit: false,
       jwtSecret,
       database: testDb,
       sendMail: async (email) => {
@@ -184,7 +185,7 @@ describe.skipIf(!databaseUrl)('forgot password', () => {
   });
 
   it('answers 503 when no mail server is set up', async () => {
-    const withoutMail = buildApp({ jwtSecret, database: testDb });
+    const withoutMail = buildApp({ rateLimit: false, jwtSecret, database: testDb });
 
     const response = await withoutMail.inject({
       method: 'POST',

@@ -24,7 +24,7 @@ describe.skipIf(!databaseUrl)('deleting an account', () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ jwtSecret, database: testDb, sendMail: async () => {} });
+    app = buildApp({ rateLimit: false, jwtSecret, database: testDb, sendMail: async () => {} });
     await app.ready();
   });
   afterAll(async () => {

@@ -15,6 +15,7 @@ const database = createDatabase(config.databaseUrl);
 const app = buildApp({
   logger: true,
   jwtSecret: config.jwtSecret,
+  trustProxy: config.trustProxy,
   database,
   verifyGoogleToken: config.googleClientId ? createGoogleVerifier(config.googleClientId) : undefined,
   sendMail: config.smtpUrl ? createSmtpMailer(config.smtpUrl, config.mailFrom) : undefined,

@@ -5,6 +5,7 @@ import { hashPassword, verifyAgainstNothing, verifyPassword } from '../auth/pass
 import { issueTokens, revokeRefreshToken, rotateRefreshToken } from '../auth/tokens.js';
 import { normalizeEmail, toPublicUser } from '../auth/users.js';
 import type { Db } from '../db/client.js';
+import { RATE_LIMITS } from '../rateLimits.js';
 import { users } from '../db/schema.js';
 
 // What each route accepts. Fastify checks every request against these before
@@ -36,7 +37,7 @@ const RefreshBody = Type.Object(
 /** POST /auth/register, /auth/login, /auth/refresh and /auth/logout. */
 export function authRoutes(db: Db): FastifyPluginAsyncTypebox {
   return async (app) => {
-    app.post('/auth/register', { schema: { body: RegisterBody } }, async (request, reply) => {
+    app.post('/auth/register', { config: { rateLimit: RATE_LIMITS.register }, schema: { body: RegisterBody } }, async (request, reply) => {
       const email = normalizeEmail(request.body.email);
       const passwordHash = await hashPassword(request.body.password);
 
@@ -57,7 +58,7 @@ export function authRoutes(db: Db): FastifyPluginAsyncTypebox {
       return reply.code(201).send({ user: toPublicUser(user), ...tokens });
     });
 
-    app.post('/auth/login', { schema: { body: LoginBody } }, async (request, reply) => {
+    app.post('/auth/login', { config: { rateLimit: RATE_LIMITS.login }, schema: { body: LoginBody } }, async (request, reply) => {
       const email = normalizeEmail(request.body.email);
       const [user] = await db.select().from(users).where(eq(users.email, email));
 
@@ -79,7 +80,7 @@ export function authRoutes(db: Db): FastifyPluginAsyncTypebox {
 
     // The app calls this when its 15-minute access token runs out: the old
     // refresh token goes in, a new pair comes out, and the old one is spent.
-    app.post('/auth/refresh', { schema: { body: RefreshBody } }, async (request, reply) => {
+    app.post('/auth/refresh', { config: { rateLimit: RATE_LIMITS.refresh }, schema: { body: RefreshBody } }, async (request, reply) => {
       const rotated = await rotateRefreshToken(app, db, request.body.refreshToken);
       if (!rotated) {
         return reply

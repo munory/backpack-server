@@ -9,6 +9,7 @@ import type { Db } from '../src/db/client.js';
 // /health only ever pings it.
 const appWith = (ping: () => Promise<void>) =>
   buildApp({
+    rateLimit: false,
     jwtSecret: 'test-secret-that-is-at-least-32-chars',
     database: { db: undefined as unknown as Db, ping },
   });

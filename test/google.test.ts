@@ -22,7 +22,7 @@ describe.skipIf(!databaseUrl)('sign in with Google', () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ jwtSecret, database: testDb, verifyGoogleToken: fakeGoogle });
+    app = buildApp({ rateLimit: false, jwtSecret, database: testDb, verifyGoogleToken: fakeGoogle });
     await app.ready();
   });
   afterAll(async () => {
@@ -104,7 +104,7 @@ describe.skipIf(!databaseUrl)('sign in with Google', () => {
   });
 
   it('answers 503 when Google sign-in isn\'t set up on the server', async () => {
-    const withoutGoogle = buildApp({ jwtSecret, database: testDb });
+    const withoutGoogle = buildApp({ rateLimit: false, jwtSecret, database: testDb });
 
     const response = await withoutGoogle.inject({
       method: 'POST',

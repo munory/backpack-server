@@ -13,6 +13,7 @@ import {
 import { issueTokens } from '../auth/tokens.js';
 import { normalizeEmail, toPublicUser } from '../auth/users.js';
 import type { Db } from '../db/client.js';
+import { RATE_LIMITS } from '../rateLimits.js';
 import { passwordResets, refreshTokens, users } from '../db/schema.js';
 import type { SendMail } from '../mail/mailer.js';
 import { resetCodeEmail } from '../mail/templates.js';
@@ -50,7 +51,7 @@ export interface PasswordResetOptions {
  */
 export function passwordResetRoutes({ db, sendMail, secret }: PasswordResetOptions): FastifyPluginAsyncTypebox {
   return async (app) => {
-    app.post('/auth/password-reset/request', { schema: { body: RequestBody } }, async (request, reply) => {
+    app.post('/auth/password-reset/request', { config: { rateLimit: RATE_LIMITS.resetRequest }, schema: { body: RequestBody } }, async (request, reply) => {
       if (!sendMail) {
         return reply
           .code(503)
@@ -105,7 +106,7 @@ export function passwordResetRoutes({ db, sendMail, secret }: PasswordResetOptio
         .send({ message: 'If an account exists for this email, a code has been sent' });
     });
 
-    app.post('/auth/password-reset/confirm', { schema: { body: ConfirmBody } }, async (request, reply) => {
+    app.post('/auth/password-reset/confirm', { config: { rateLimit: RATE_LIMITS.resetConfirm }, schema: { body: ConfirmBody } }, async (request, reply) => {
       // One answer for every failure: unknown email, no code requested,
       // wrong, expired, or out of tries.
       const invalid = () =>

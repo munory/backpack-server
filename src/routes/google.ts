@@ -5,6 +5,7 @@ import type { VerifyGoogleToken } from '../auth/google.js';
 import { issueTokens } from '../auth/tokens.js';
 import { normalizeEmail, toPublicUser } from '../auth/users.js';
 import type { Db } from '../db/client.js';
+import { RATE_LIMITS } from '../rateLimits.js';
 import { refreshTokens, users } from '../db/schema.js';
 
 const GoogleBody = Type.Object(
@@ -27,7 +28,7 @@ const GoogleBody = Type.Object(
  */
 export function googleRoutes(db: Db, verify: VerifyGoogleToken | undefined): FastifyPluginAsyncTypebox {
   return async (app) => {
-    app.post('/auth/google', { schema: { body: GoogleBody } }, async (request, reply) => {
+    app.post('/auth/google', { config: { rateLimit: RATE_LIMITS.google }, schema: { body: GoogleBody } }, async (request, reply) => {
       if (!verify) {
         return reply
           .code(503)

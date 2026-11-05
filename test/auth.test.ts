@@ -14,7 +14,7 @@ describe.skipIf(!databaseUrl)('accounts with email and password', () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ jwtSecret, database: testDb });
+    app = buildApp({ rateLimit: false, jwtSecret, database: testDb });
     await app.ready();
   });
   afterAll(async () => {

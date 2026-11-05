@@ -25,6 +25,11 @@ full history.
 - Every authenticated route must load the user row (or otherwise confirm it
   exists): a deleted account's access token stays signature-valid for up to 15
   minutes. `/me` does; `/sync` must too.
+- Rate limits per IP live in `src/rateLimits.ts` (in-memory, @fastify/rate-limit);
+  a new sensitive route gets its own entry. Tests making many requests pass
+  `rateLimit: false`; `test/protection.test.ts` tests the limits. On the VPS set
+  `TRUST_PROXY` to Caddy's address, or every user shares one limit. Body limit
+  64 KB, `/sync` 5 MB. Secrets are redacted from logs (`SECRETS` in app.ts).
 - Commits: only when she asks; authored as her (git global identity "munory"), **no
   Co-Authored-By line**, English message with a short description. Never commit
   `.claude/` or `.env`.

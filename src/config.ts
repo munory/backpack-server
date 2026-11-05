@@ -14,6 +14,8 @@ export interface Config {
   /** Mail server for "forgot password" codes; without it reset answers 503. */
   smtpUrl: string | undefined;
   mailFrom: string;
+  /** Set on the VPS, where Caddy sits in front: see AppOptions.trustProxy. */
+  trustProxy: boolean | string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -34,5 +36,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     googleClientId: env.GOOGLE_CLIENT_ID || undefined,
     smtpUrl: env.SMTP_URL || undefined,
     mailFrom: env.MAIL_FROM || 'Backpack <no-reply@backpack.local>',
+    // "true", or the proxy's address(es), e.g. "127.0.0.1"; empty = no proxy.
+    trustProxy: env.TRUST_PROXY === 'true' ? true : env.TRUST_PROXY || false,
   };
 }
