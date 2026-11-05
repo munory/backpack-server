@@ -22,6 +22,9 @@ full history.
   deployment (VPS + Caddy for https + scheduled backups) — VPS/domain bought later.
 - Security-critical parts come from proven libraries, never hand-rolled: password
   hashing (argon2), Google ID-token verification, token signing.
+- Every authenticated route must load the user row (or otherwise confirm it
+  exists): a deleted account's access token stays signature-valid for up to 15
+  minutes. `/me` does; `/sync` must too.
 - Commits: only when she asks; authored as her (git global identity "munory"), **no
   Co-Authored-By line**, English message with a short description. Never commit
   `.claude/` or `.env`.
@@ -75,7 +78,12 @@ full history.
 - `POST /auth/password-reset/request` `{email}`; `POST /auth/password-reset/confirm`
   `{token, newPassword}`
 - `GET /me`, `DELETE /me` (deletes the account and all its data)
-- `POST /sync` `{cursor, changes: {categories, items, trips, tripItems}, deletions}`
-  → `{cursor, changes, deletions}` — one call pushes local changes and pulls
-  everything changed on the server since `cursor`.
+- `POST /sync` `{cursor, changes: {categories, items, trips, tripItems}, deletions, limit?}`
+  → `{cursor, hasMore, changes, deletions}` — one call pushes local changes and pulls
+  everything changed on the server since `cursor` (pages of `limit`, default 500;
+  `hasMore` → call again). Wire shapes in `src/sync/wire.ts`, rules in
+  `src/sync/sync.ts`. A device's own changes aren't echoed back. Deletion keys:
+  the row's uuid, for trip_items `"tripUuid/itemUuid"` (lowercase).
+- Nullable schema fields: put `Type.Null()` **first** in the union — Fastify's
+  validator coerces types and would turn null into `""`/`0` otherwise.
 - `GET /health` — liveness check.

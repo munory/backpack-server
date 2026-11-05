@@ -10,6 +10,7 @@ import { authRoutes } from './routes/auth.js';
 import { googleRoutes } from './routes/google.js';
 import { meRoutes } from './routes/me.js';
 import { passwordResetRoutes } from './routes/passwordReset.js';
+import { syncRoutes } from './routes/sync.js';
 
 export interface AppOptions {
   logger?: boolean;
@@ -85,6 +86,7 @@ export function buildApp(options: AppOptions) {
     }),
   );
   app.register(meRoutes(options.database.db));
+  app.register(syncRoutes(options.database.db));
 
   return app;
 }
