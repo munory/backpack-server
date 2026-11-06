@@ -5,16 +5,18 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../src/app.js';
 import { users } from '../src/db/schema.js';
 import { createTestDatabase, databaseUrl } from './helpers/testDatabase.js';
+import { createInbox, signUp } from './helpers/signUp.js';
 
 const jwtSecret = 'test-secret-that-is-at-least-32-chars';
 
 describe.skipIf(!databaseUrl)('accounts with email and password', () => {
   let testDb: Awaited<ReturnType<typeof createTestDatabase>>;
   let app: App;
+  const inbox = createInbox();
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ rateLimit: false, jwtSecret, database: testDb });
+    app = buildApp({ rateLimit: false, jwtSecret, database: testDb, sendMail: inbox.sendMail });
     await app.ready();
   });
   afterAll(async () => {
@@ -22,8 +24,7 @@ describe.skipIf(!databaseUrl)('accounts with email and password', () => {
     await testDb.drop();
   });
 
-  const register = (email: string, password: string) =>
-    app.inject({ method: 'POST', url: '/auth/register', payload: { email, password } });
+  const register = (email: string, password: string) => signUp(app, inbox, email, password);
   const login = (email: string, password: string) =>
     app.inject({ method: 'POST', url: '/auth/login', payload: { email, password } });
   const me = (token?: string) =>
@@ -95,11 +96,7 @@ describe.skipIf(!databaseUrl)('accounts with email and password', () => {
     // Fastify strips anything not in the schema before our code sees it —
     // so "isAdmin" can't sneak in, and a newer app sending a new field
     // doesn't break an older server.
-    const response = await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: { email: 'extra@example.com', password: 'long enough', isAdmin: true },
-    });
+    const response = await signUp(app, inbox, 'extra@example.com', 'long enough', { extra: { isAdmin: true } });
 
     expect(response.statusCode).toBe(201);
     expect(response.json().user).not.toHaveProperty('isAdmin');

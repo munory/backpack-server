@@ -77,6 +77,30 @@ export const passwordResets = pgTable(
   (t) => [index('password_resets_user_idx').on(t.userId)],
 );
 
+/**
+ * Sign-ups waiting for their email to be confirmed. The account itself is
+ * created only once the 6-digit code from the email is typed in — so an
+ * address with a typo, or someone else's, never becomes an account. Same
+ * rules as reset codes: 15 minutes, 5 tries, a new request retires the old.
+ * Not linked to users: there is no user yet.
+ */
+export const pendingSignups = pgTable(
+  'pending_signups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: text('email').notNull(),
+    /** The chosen password, already hashed — kept until the account exists. */
+    passwordHash: text('password_hash').notNull(),
+    /** HMAC of the code, as for reset codes. */
+    codeHash: text('code_hash').notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('pending_signups_email_idx').on(t.email)],
+);
+
 // ---------------------------------------------------------------------------
 // Synced data — the cloud copy of what lives in the app's SQLite
 // ---------------------------------------------------------------------------

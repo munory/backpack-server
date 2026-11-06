@@ -22,6 +22,8 @@ export const RATE_LIMITS = {
   default: perMinute(120),
   login: perMinute(10),
   register: perMinute(5),
+  /** On top of 5 attempts per code. */
+  registerConfirm: perMinute(10),
   google: perMinute(10),
   refresh: perMinute(30),
   /** On top of the per-email one-minute cooldown, so it can't be used to spam. */

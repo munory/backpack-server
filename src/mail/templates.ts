@@ -2,6 +2,42 @@ import type { Email } from './mailer.js';
 
 export type Language = 'ru' | 'en';
 
+/** "482913" → "482 913": easier to read off and type. */
+const spaced = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
+
+/** The "confirm your email" email sent on sign-up. */
+export function signupCodeEmail(to: string, code: string, language: Language): Email {
+  const shown = spaced(code);
+  if (language === 'ru') {
+    return {
+      to,
+      subject: `Код для регистрации в Backpack: ${shown}`,
+      text: [
+        'Здравствуйте!',
+        '',
+        `Ваш код для подтверждения почты в Backpack: ${shown}`,
+        '',
+        'Код действует 15 минут. Введите его в приложении, чтобы закончить регистрацию.',
+        '',
+        'Если вы не регистрировались в Backpack, просто проигнорируйте это письмо — без кода аккаунт не создастся.',
+      ].join('\n'),
+    };
+  }
+  return {
+    to,
+    subject: `Your Backpack sign-up code: ${shown}`,
+    text: [
+      'Hi,',
+      '',
+      `Your code to confirm your email for Backpack: ${shown}`,
+      '',
+      'It works for 15 minutes. Enter it in the app to finish signing up.',
+      '',
+      "If you didn't sign up for Backpack, just ignore this email — no account is created without the code.",
+    ].join('\n'),
+  };
+}
+
 /** The "forgot password" email, in the language the app is set to. */
 export function resetCodeEmail(to: string, code: string, language: Language): Email {
   // "482913" → "482 913": easier to read off and type.

@@ -6,14 +6,16 @@ import { buildApp, type App } from '../src/app.js';
 import { hashToken } from '../src/auth/tokens.js';
 import { refreshTokens } from '../src/db/schema.js';
 import { createTestDatabase, databaseUrl } from './helpers/testDatabase.js';
+import { createInbox, signUp as signUpWithCode } from './helpers/signUp.js';
 
 describe.skipIf(!databaseUrl)('renewing and signing out', () => {
   let testDb: Awaited<ReturnType<typeof createTestDatabase>>;
   let app: App;
+  const inbox = createInbox();
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ rateLimit: false, jwtSecret: 'test-secret-that-is-at-least-32-chars', database: testDb });
+    app = buildApp({ rateLimit: false, jwtSecret: 'test-secret-that-is-at-least-32-chars', database: testDb, sendMail: inbox.sendMail });
     await app.ready();
   });
   afterAll(async () => {
@@ -24,11 +26,7 @@ describe.skipIf(!databaseUrl)('renewing and signing out', () => {
   let accounts = 0;
   /** A fresh account; returns its id and first pair of tokens. */
   const signUp = async () => {
-    const response = await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: { email: `user${++accounts}@example.com`, password: 'long enough' },
-    });
+    const response = await signUpWithCode(app, inbox, `user${++accounts}@example.com`, 'long enough');
     const body = response.json();
     return { userId: body.user.id as string, refreshToken: body.refreshToken as string };
   };

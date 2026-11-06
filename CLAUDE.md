@@ -75,7 +75,15 @@ full history.
 
 ## API contract (draft — refine as we build)
 
-- `POST /auth/register` `{email, password}` → `{accessToken, refreshToken, user}`
+- Sign-up proves the email first (decided 2026-11-05): `POST /auth/register`
+  `{email, password, language?}` → 202 and a 6-digit code emailed (409 `email_taken`,
+  503 `mail_not_configured` / `mail_failed`); `POST /auth/register/confirm`
+  `{email, code}` → 201 `{accessToken, refreshToken, user}`. The account row is
+  created only on confirm (`pending_signups` holds the wait). Same code rules as
+  reset: 15 min, 5 tries, one email a minute.
+- `PATCH /me` `{name}` — the only profile field. We deliberately collect nothing
+  else about people (no age, gender…): data minimisation for 152-FZ and Play's
+  data-safety form; product statistics, if ever, via anonymous analytics.
 - `POST /auth/login` `{email, password}` → same
 - `POST /auth/google` `{idToken}` → same
 - `POST /auth/refresh` `{refreshToken}` → new tokens

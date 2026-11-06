@@ -15,6 +15,13 @@
       "when": 1793795484481,
       "tag": "0001_reset_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793868902600,
+      "tag": "0002_signup_codes",
+      "breakpoints": true
     }
   ]
 }

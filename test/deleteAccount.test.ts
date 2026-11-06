@@ -15,16 +15,18 @@ import {
   users,
 } from '../src/db/schema.js';
 import { createTestDatabase, databaseUrl } from './helpers/testDatabase.js';
+import { createInbox, signUp } from './helpers/signUp.js';
 
 const jwtSecret = 'test-secret-that-is-at-least-32-chars';
 
 describe.skipIf(!databaseUrl)('deleting an account', () => {
   let testDb: Awaited<ReturnType<typeof createTestDatabase>>;
   let app: App;
+  const inbox = createInbox();
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ rateLimit: false, jwtSecret, database: testDb, sendMail: async () => {} });
+    app = buildApp({ rateLimit: false, jwtSecret, database: testDb, sendMail: inbox.sendMail });
     await app.ready();
   });
   afterAll(async () => {
@@ -34,7 +36,7 @@ describe.skipIf(!databaseUrl)('deleting an account', () => {
 
   const post = (url: string, payload: object) => app.inject({ method: 'POST', url, payload });
   const register = async (email: string) => {
-    const body = (await post('/auth/register', { email, password: 'my password' })).json();
+    const body = (await signUp(app, inbox, email)).json();
     return { userId: body.user.id as string, accessToken: body.accessToken, refreshToken: body.refreshToken };
   };
   const deleteMe = (accessToken: string | undefined, payload: object = {}) =>
@@ -94,7 +96,7 @@ describe.skipIf(!databaseUrl)('deleting an account', () => {
     expect((await post('/auth/refresh', { refreshToken: anna.refreshToken })).statusCode).toBe(401);
     expect((await post('/auth/login', { email: 'anna@example.com', password: 'my password' })).statusCode).toBe(401);
 
-    const again = await post('/auth/register', { email: 'anna@example.com', password: 'fresh start' });
+    const again = await signUp(app, inbox, 'anna@example.com', 'fresh start');
     expect(again.statusCode).toBe(201);
     expect(again.json().user.id).not.toBe(anna.userId);
   });

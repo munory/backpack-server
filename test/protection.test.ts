@@ -5,16 +5,18 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../src/app.js';
 import { RATE_LIMITS } from '../src/rateLimits.js';
 import { createTestDatabase, databaseUrl } from './helpers/testDatabase.js';
+import { createInbox, signUp } from './helpers/signUp.js';
 
 const jwtSecret = 'test-secret-that-is-at-least-32-chars';
 
 describe.skipIf(!databaseUrl)('protection against abuse', () => {
   let testDb: Awaited<ReturnType<typeof createTestDatabase>>;
   let app: App;
+  const inbox = createInbox();
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ jwtSecret, database: testDb, sendMail: async () => {} });
+    app = buildApp({ jwtSecret, database: testDb, sendMail: inbox.sendMail });
     await app.ready();
   });
   afterAll(async () => {
@@ -82,8 +84,8 @@ describe.skipIf(!databaseUrl)('protection against abuse', () => {
   });
 
   it('still lets a big first sync through', async () => {
-    const accessToken = (await from('10.0.4.1', '/auth/register', {
-      email: 'lena@example.com', password: 'my password',
+    const accessToken = (await signUp(app, inbox, 'lena@example.com', 'my password', {
+      remoteAddress: '10.0.4.1',
     })).json().accessToken;
     const items = Array.from({ length: 1000 }, (_, i) => ({
       uuid: randomUUID(), name: `Вещь номер ${i}`, weightGrams: 100, categoryUuid: randomUUID(),

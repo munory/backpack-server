@@ -11,6 +11,7 @@ import { authRoutes } from './routes/auth.js';
 import { googleRoutes } from './routes/google.js';
 import { meRoutes } from './routes/me.js';
 import { passwordResetRoutes } from './routes/passwordReset.js';
+import { signupRoutes } from './routes/signup.js';
 import { syncRoutes } from './routes/sync.js';
 import { RATE_LIMITS } from './rateLimits.js';
 
@@ -133,6 +134,7 @@ export function buildApp(options: AppOptions) {
   });
 
   app.register(authRoutes(options.database.db));
+  app.register(signupRoutes({ db: options.database.db, sendMail: options.sendMail, secret: options.jwtSecret }));
   app.register(googleRoutes(options.database.db, options.verifyGoogleToken));
   app.register(
     passwordResetRoutes({

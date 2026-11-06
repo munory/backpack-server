@@ -7,12 +7,21 @@ import { toPublicUser } from '../auth/users.js';
 import type { Db } from '../db/client.js';
 import { users } from '../db/schema.js';
 
+const UpdateBody = Type.Object(
+  {
+    /** How the app addresses the person; null or blank clears it. */
+    name: Type.Union([Type.Null(), Type.String({ maxLength: 100 })]),
+  },
+  { additionalProperties: false },
+);
+
 const DeleteBody = Type.Object(
   { password: Type.Optional(Type.String({ maxLength: 200 })) },
   { additionalProperties: false },
 );
 
-/** GET /me — the signed-in user's own account; DELETE /me — remove it. */
+/** GET /me — the signed-in user's own account; PATCH /me — change the name;
+ * DELETE /me — remove it. */
 export function meRoutes(db: Db): FastifyPluginAsyncTypebox {
   return async (app) => {
     const signInRequired = { error: 'unauthorized', message: 'Sign in required' };
@@ -20,6 +29,15 @@ export function meRoutes(db: Db): FastifyPluginAsyncTypebox {
     app.get('/me', { preHandler: authenticate }, async (request, reply) => {
       const [user] = await db.select().from(users).where(eq(users.id, request.user.sub));
       // A valid token for an account deleted since it was issued.
+      if (!user) return reply.code(401).send(signInRequired);
+      return toPublicUser(user);
+    });
+
+    // The only thing editable for now: the optional name, set or changed
+    // whenever, from Profile. Nothing else about a person is asked for.
+    app.patch('/me', { preHandler: authenticate, schema: { body: UpdateBody } }, async (request, reply) => {
+      const name = request.body.name?.trim() || null;
+      const [user] = await db.update(users).set({ name }).where(eq(users.id, request.user.sub)).returning();
       if (!user) return reply.code(401).send(signInRequired);
       return toPublicUser(user);
     });

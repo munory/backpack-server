@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../src/app.js';
 import type { GoogleIdentity } from '../src/auth/google.js';
 import { createTestDatabase, databaseUrl } from './helpers/testDatabase.js';
+import { createInbox, signUp } from './helpers/signUp.js';
 
 const jwtSecret = 'test-secret-that-is-at-least-32-chars';
 
@@ -19,10 +20,11 @@ const fakeGoogle = async (idToken: string) => googlePeople[idToken] ?? null;
 describe.skipIf(!databaseUrl)('sign in with Google', () => {
   let testDb: Awaited<ReturnType<typeof createTestDatabase>>;
   let app: App;
+  const inbox = createInbox();
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ rateLimit: false, jwtSecret, database: testDb, verifyGoogleToken: fakeGoogle });
+    app = buildApp({ rateLimit: false, jwtSecret, database: testDb, verifyGoogleToken: fakeGoogle, sendMail: inbox.sendMail });
     await app.ready();
   });
   afterAll(async () => {
@@ -59,11 +61,7 @@ describe.skipIf(!databaseUrl)('sign in with Google', () => {
   });
 
   it('links Google to a password account with the same email, and retires the password', async () => {
-    const signedUp = await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: { email: 'Boris@Example.com', password: 'set before google' },
-    });
+    const signedUp = await signUp(app, inbox, 'Boris@Example.com', 'set before google');
     const oldRefresh = signedUp.json().refreshToken;
 
     const viaGoogle = await google('token-boris');

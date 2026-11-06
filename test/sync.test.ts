@@ -5,16 +5,18 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../src/app.js';
 import type { CategoryWire, ItemWire, SyncRequest, SyncResponse } from '../src/sync/wire.js';
 import { createTestDatabase, databaseUrl } from './helpers/testDatabase.js';
+import { createInbox, signUp } from './helpers/signUp.js';
 
 const jwtSecret = 'test-secret-that-is-at-least-32-chars';
 
 describe.skipIf(!databaseUrl)('POST /sync', () => {
   let testDb: Awaited<ReturnType<typeof createTestDatabase>>;
   let app: App;
+  const inbox = createInbox();
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-    app = buildApp({ rateLimit: false, jwtSecret, database: testDb });
+    app = buildApp({ rateLimit: false, jwtSecret, database: testDb, sendMail: inbox.sendMail });
     await app.ready();
   });
   afterAll(async () => {
@@ -23,9 +25,7 @@ describe.skipIf(!databaseUrl)('POST /sync', () => {
   });
 
   const register = async (email: string) => {
-    const response = await app.inject({
-      method: 'POST', url: '/auth/register', payload: { email, password: 'my password' },
-    });
+    const response = await signUp(app, inbox, email);
     return response.json().accessToken as string;
   };
 

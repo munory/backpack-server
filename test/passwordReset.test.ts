@@ -5,6 +5,7 @@ import { buildApp, type App } from '../src/app.js';
 import { passwordResets, users } from '../src/db/schema.js';
 import type { Email } from '../src/mail/mailer.js';
 import { createTestDatabase, databaseUrl } from './helpers/testDatabase.js';
+import { signUp } from './helpers/signUp.js';
 
 const jwtSecret = 'test-secret-that-is-at-least-32-chars';
 
@@ -35,8 +36,18 @@ describe.skipIf(!databaseUrl)('forgot password', () => {
   });
 
   const post = (url: string, payload: object) => app.inject({ method: 'POST', url, payload });
-  const register = (email: string, password = 'old password') =>
-    post('/auth/register', { email, password });
+  /** An account to reset — its sign-up email is cleared from the inbox, so
+   * the tests below see only reset emails. */
+  const register = async (email: string, password = 'old password') => {
+    const response = await signUp(
+      app,
+      { lastCodeFor: () => inbox.at(-1)!.subject.match(/(\d{3}) (\d{3})/)!.slice(1).join('') },
+      email,
+      password,
+    );
+    inbox = [];
+    return response;
+  };
   const requestCode = (email: string, language?: 'ru' | 'en') =>
     post('/auth/password-reset/request', { email, language });
   const confirm = (email: string, code: string, newPassword = 'brand new password') =>

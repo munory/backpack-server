@@ -14,11 +14,12 @@ export function generateResetCode(): string {
  * The code's fingerprint as stored in the database: an HMAC — a hash mixed
  * with a key only the server knows. A plain hash of 6 digits would be
  * useless: all million of them can be hashed in a second to find a match.
- * Without the key, a leaked database reveals nothing. The user id is mixed
- * in, so the same digits sent to two people hash differently.
+ * Without the key, a leaked database reveals nothing. [owner] — the user id,
+ * or `signup:<email>` for a sign-up code — is mixed in, so the same digits
+ * sent to two people hash differently.
  */
-export function hashResetCode(secret: string, userId: string, code: string): string {
-  return createHmac('sha256', secret).update(`${userId}:${code}`).digest('hex');
+export function hashResetCode(secret: string, owner: string, code: string): string {
+  return createHmac('sha256', secret).update(`${owner}:${code}`).digest('hex');
 }
 
 /** Compares in constant time, so timing doesn't leak how many characters matched. */
